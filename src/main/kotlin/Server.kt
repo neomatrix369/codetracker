@@ -4,8 +4,7 @@ import com.intellij.openapi.diagnostic.Logger
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import java.io.File
-import java.net.URL
-import java.net.UnknownHostException
+import java.net.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -36,11 +35,15 @@ object PluginServer : Server {
     private enum class FileTypes {
         CODE_TRACKER, ACTIVITY_TRACKER
     }
+    private const val PHT_PROXY_HOST = "192.168.0.2"
+    private const val PHT_PROXY_PORT = 3128
+    private val PHT_PROXY = Proxy(Proxy.Type.HTTP, InetSocketAddress(PHT_PROXY_HOST, PHT_PROXY_PORT))
 
     init {
         diagnosticLogger.info("${Plugin.PLUGIN_ID}: init server")
         diagnosticLogger.info("${Plugin.PLUGIN_ID}: Max count attempt of sending data to server = ${MAX_COUNT_ATTEMPTS}")
         client = OkHttpClient.Builder()
+            .proxy(PHT_PROXY)
             .connectTimeout(10, TimeUnit.SECONDS)
             .writeTimeout(10, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
@@ -86,6 +89,8 @@ object PluginServer : Server {
                 }
             } catch (e: UnknownHostException) {
                 diagnosticLogger.info("${Plugin.PLUGIN_ID}: Generating activity tracker key error: no internet connection")
+            } catch (e: SocketTimeoutException) {
+                diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: socket timeout exception by using proxy")
             }
         }, daemon)
     }
@@ -120,6 +125,8 @@ object PluginServer : Server {
                 }
             } catch (e: UnknownHostException) {
                 diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: no internet connection")
+            } catch (e: SocketTimeoutException) {
+                diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: socket timeout exception by using proxy")
             }
         }, daemon)
     }
@@ -204,6 +211,9 @@ object PluginServer : Server {
             }
         } catch (e: UnknownHostException) {
             diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error getting tasks: no internet connection")
+            return emptyList()
+        } catch (e: SocketTimeoutException) {
+            diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error getting tasks: socket timeout exception by using proxy")
             return emptyList()
         }
     }

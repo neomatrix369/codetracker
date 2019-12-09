@@ -19,34 +19,36 @@ interface Server {
 }
 
 object PluginServer : Server {
-    private val daemon = Executors.newSingleThreadExecutor()
-
-    private val diagnosticLogger: Logger = Logger.getInstance(javaClass)
-    private val media_type_csv = "text/csv".toMediaType()
-    private const val BASE_URL: String = "http://coding-assistant-helper.ru/api/"
-    private const val MAX_COUNT_ATTEMPTS = 5
-    private const val ACTIVITY_TRACKER_FILE = "ide-events.csv"
-    private var client: OkHttpClient
-    private val activityTrackerPath = "${PathManager.getPluginsPath()}/activity-tracker/" + ACTIVITY_TRACKER_FILE
-    // private val activityTrackerPath = "/Users/macbook/Library/Application Support/IntelliJIdea2019.2/activity-tracker/" + ACTIVITY_TRACKER_FILE
-    private var activityTrackerKey: String? = null
-    private const val SLEEP_TIME = 5_000L
     private enum class FileSendingState {
         NOT_SENT, SENT
     }
     private enum class FileTypes {
         CODE_TRACKER, ACTIVITY_TRACKER
     }
+
+    private const val BASE_URL: String = "http://coding-assistant-helper.ru/api/"
+    private const val MAX_COUNT_ATTEMPTS = 5
+    private const val ACTIVITY_TRACKER_FILE = "ide-events.csv"
+    private const val SLEEP_TIME = 5_000L
+    private const val PTHS_PROXY_HOST = "192.168.0.2"
+    private const val PTHS_PROXY_PORT = 3128
+
+    private val daemon = Executors.newSingleThreadExecutor()
+    private val diagnosticLogger: Logger = Logger.getInstance(javaClass)
+
+    private var activityTrackerKey: String? = null
     private var isLastSuccessful : Boolean = false
-    private const val PHT_PROXY_HOST = "192.168.0.2"
-    private const val PHT_PROXY_PORT = 3128
-    private val PHT_PROXY = Proxy(Proxy.Type.HTTP, InetSocketAddress(PHT_PROXY_HOST, PHT_PROXY_PORT))
+
+    private var client: OkHttpClient
+    private val media_type_csv = "text/csv".toMediaType()
+    private val activityTrackerPath = "${PathManager.getPluginsPath()}/activity-tracker/" + ACTIVITY_TRACKER_FILE
+    private val pths_proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(PTHS_PROXY_HOST, PTHS_PROXY_PORT))
 
     init {
         diagnosticLogger.info("${Plugin.PLUGIN_ID}: init server")
         diagnosticLogger.info("${Plugin.PLUGIN_ID}: Max count attempt of sending data to server = ${MAX_COUNT_ATTEMPTS}")
         client = OkHttpClient.Builder()
-            .proxy(PHT_PROXY)
+            .proxy(pths_proxy)
             .connectTimeout(10, TimeUnit.SECONDS)
             .writeTimeout(10, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
@@ -98,10 +100,14 @@ object PluginServer : Server {
                         Thread.sleep(SLEEP_TIME)
                     }
                 }
-            } catch (e: UnknownHostException) {
-                diagnosticLogger.info("${Plugin.PLUGIN_ID}: Generating activity tracker key error: no internet connection")
-            } catch (e: SocketTimeoutException) {
-                diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: socket timeout exception by using proxy")
+            } catch(ex:Exception) {
+                when(ex) {
+                    is UnknownHostException ->
+                        diagnosticLogger.info("${Plugin.PLUGIN_ID}: Generating activity tracker key error: no internet connection")
+                    is SocketTimeoutException, is SocketException ->
+                        diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: socket exception by using proxy")
+                    else -> diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: internet connection exception")
+                }
             }
         }, daemon)
     }
@@ -136,10 +142,14 @@ object PluginServer : Server {
                 if (curCountAttempts == MAX_COUNT_ATTEMPTS) {
                     currentState = FileSendingState.NOT_SENT
                 }
-            } catch (e: UnknownHostException) {
-                diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: no internet connection")
-            } catch (e: SocketTimeoutException) {
-                diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: socket timeout exception by using proxy")
+            } catch(ex:Exception) {
+                when(ex) {
+                    is UnknownHostException ->
+                        diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: no internet connection")
+                    is SocketTimeoutException, is SocketException ->
+                        diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: socket exception by using proxy")
+                    else -> diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: internet connection exception")
+                }
             }
         }, daemon)
     }
@@ -232,11 +242,14 @@ object PluginServer : Server {
                     emptyList()
                 }
             }
-        } catch (e: UnknownHostException) {
-            diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error getting tasks: no internet connection")
-            return emptyList()
-        } catch (e: SocketTimeoutException) {
-            diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error getting tasks: socket timeout exception by using proxy")
+        } catch(ex:Exception) {
+            when(ex) {
+                is UnknownHostException ->
+                    diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error getting tasks: no internet connection")
+                is SocketTimeoutException, is SocketException ->
+                    diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error getting tasks: socket exception by using proxy")
+                else -> diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error getting tasks: internet connection exception")
+            }
             return emptyList()
         }
     }

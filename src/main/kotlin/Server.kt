@@ -30,6 +30,7 @@ object PluginServer : Server {
     private const val MAX_COUNT_ATTEMPTS = 5
     private const val ACTIVITY_TRACKER_FILE = "ide-events.csv"
     private const val SLEEP_TIME = 5_000L
+
     private const val PTHS_PROXY_HOST = "192.168.0.2"
     private const val PTHS_PROXY_PORT = 3128
 
@@ -42,7 +43,9 @@ object PluginServer : Server {
     private var client: OkHttpClient
     private val media_type_csv = "text/csv".toMediaType()
     private val activityTrackerPath = "${PathManager.getPluginsPath()}/activity-tracker/" + ACTIVITY_TRACKER_FILE
+
     private val pths_proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(PTHS_PROXY_HOST, PTHS_PROXY_PORT))
+
 
     init {
         diagnosticLogger.info("${Plugin.PLUGIN_ID}: init server")
@@ -104,8 +107,10 @@ object PluginServer : Server {
                 when(ex) {
                     is UnknownHostException ->
                         diagnosticLogger.info("${Plugin.PLUGIN_ID}: Generating activity tracker key error: no internet connection")
+
                     is SocketTimeoutException, is SocketException ->
                         diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: socket exception by using proxy")
+
                     else -> diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: internet connection exception")
                 }
             }
@@ -146,8 +151,10 @@ object PluginServer : Server {
                 when(ex) {
                     is UnknownHostException ->
                         diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: no internet connection")
+
                     is SocketTimeoutException, is SocketException ->
                         diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: socket exception by using proxy")
+
                     else -> diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: internet connection exception")
                 }
             }
@@ -246,8 +253,10 @@ object PluginServer : Server {
             when(ex) {
                 is UnknownHostException ->
                     diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error getting tasks: no internet connection")
+
                 is SocketTimeoutException, is SocketException ->
                     diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error getting tasks: socket exception by using proxy")
+
                 else -> diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error getting tasks: internet connection exception")
             }
             return emptyList()

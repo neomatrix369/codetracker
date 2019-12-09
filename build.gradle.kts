@@ -104,6 +104,7 @@ gluonClient {
         "javafx.scene.control.Button", "javafx.scene.control.Label")
 }
 tasks.withType<ShadowJar>() {
+    archiveBaseName.set("code-tracker-PTHS")
 }
 
 

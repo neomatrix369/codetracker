@@ -48,7 +48,6 @@ object PluginServer : Server {
         diagnosticLogger.info("${Plugin.PLUGIN_ID}: init server")
         diagnosticLogger.info("${Plugin.PLUGIN_ID}: Max count attempt of sending data to server = ${MAX_COUNT_ATTEMPTS}")
         client = OkHttpClient.Builder()
-            .proxy(pths_proxy)
             .connectTimeout(10, TimeUnit.SECONDS)
             .writeTimeout(10, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)

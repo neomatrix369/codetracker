@@ -46,12 +46,10 @@ object PluginServer : Server {
 
     private val pths_proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(PTHS_PROXY_HOST, PTHS_PROXY_PORT))
 
-
     init {
         diagnosticLogger.info("${Plugin.PLUGIN_ID}: init server")
         diagnosticLogger.info("${Plugin.PLUGIN_ID}: Max count attempt of sending data to server = ${MAX_COUNT_ATTEMPTS}")
         client = OkHttpClient.Builder()
-            .proxy(pths_proxy)
             .connectTimeout(10, TimeUnit.SECONDS)
             .writeTimeout(10, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
@@ -107,10 +105,8 @@ object PluginServer : Server {
                 when(ex) {
                     is UnknownHostException ->
                         diagnosticLogger.info("${Plugin.PLUGIN_ID}: Generating activity tracker key error: no internet connection")
-
                     is SocketTimeoutException, is SocketException ->
                         diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: socket exception by using proxy")
-
                     else -> diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: internet connection exception")
                 }
             }
@@ -151,10 +147,8 @@ object PluginServer : Server {
                 when(ex) {
                     is UnknownHostException ->
                         diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: no internet connection")
-
                     is SocketTimeoutException, is SocketException ->
                         diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: socket exception by using proxy")
-
                     else -> diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error sending tracking data: internet connection exception")
                 }
             }
@@ -253,10 +247,8 @@ object PluginServer : Server {
             when(ex) {
                 is UnknownHostException ->
                     diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error getting tasks: no internet connection")
-
                 is SocketTimeoutException, is SocketException ->
                     diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error getting tasks: socket exception by using proxy")
-
                 else -> diagnosticLogger.info("${Plugin.PLUGIN_ID}: Error getting tasks: internet connection exception")
             }
             return emptyList()

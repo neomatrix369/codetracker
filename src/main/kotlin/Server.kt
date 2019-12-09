@@ -137,7 +137,7 @@ object PluginServer : Server {
         }, daemon)
     }
 
-    private fun sendActivityTrackerData() {
+    private fun sendActivityTrackerData(deleteAfter: () -> Boolean) {
         val file = File(activityTrackerPath)
         val fileExists = file.exists()
         if (fileExists) {
@@ -157,7 +157,15 @@ object PluginServer : Server {
                 .put(requestBody.build())
                 .build()
 
-            sendDataToServer(request, FileTypes.ACTIVITY_TRACKER)
+            val future = sendDataToServer(request, FileTypes.ACTIVITY_TRACKER)
+            future.thenRun {
+                if (deleteAfter()) {
+                    diagnosticLogger.info("${Plugin.PLUGIN_ID}: delete file ${file.name}")
+                    file.delete()
+                }
+                future.get()
+
+            }
         } else {
             diagnosticLogger.info("${Plugin.PLUGIN_ID}: activity-tracker file doesn't exist")
         }
@@ -192,7 +200,7 @@ object PluginServer : Server {
                 file.delete()
             }
             if (currentState == FileSendingState.SENT) {
-                sendActivityTrackerData()
+                sendActivityTrackerData { checkSuccessful() }
             }
             postActivity()
         }
